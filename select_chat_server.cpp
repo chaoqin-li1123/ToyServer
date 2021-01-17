@@ -21,15 +21,15 @@ using namespace std;
 
 
 struct PollingServer {
-    PollingServer() {
+    PollingServer(const char* host_, const char* port_) {
         clearFds();
-        listener_fd = initListener(NULL, port.c_str());
+        listener = make_unique<Listener>(host_, port_);
+        listener_fd = listener->fd();
         FD_SET(listener_fd, &fds);
         resetFdmax();
     }
 
     ~PollingServer() {
-        if (listener_fd != -1) close(listener_fd);
         for (int connection: connections) close(connection); 
     }
 
@@ -56,14 +56,7 @@ struct PollingServer {
     }
 
     void run() {
-        int status = listen(listener_fd, BACKLOG);
-        if (status != -1) {
-            cout << "start listening" << endl;
-        }
-        else {
-            cerr << "fail to listen\n";
-            return;
-        }
+        listener->startListening();
         while (true) {
             fd_set active = fds; 
             int status = select(fd_max+1, &active, NULL, NULL, NULL);
@@ -107,6 +100,7 @@ struct PollingServer {
 
 private:
     string port{"10086"};
+    unique_ptr<Listener> listener;
     int listener_fd{-1};
     set<int> connections;
     fd_set fds;
@@ -114,7 +108,7 @@ private:
 };
 
 
-int main() {
-    PollingServer server;
+int main(int argc, char *argv[]) {
+    PollingServer server(argv[1], argv[2]);
     server.run();
 }

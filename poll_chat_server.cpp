@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <set>
+#include <memory>
 
 #include "utility.h"
 
@@ -20,7 +21,8 @@ using namespace std;
 
 struct Server {
     Server(const char* host_, const char* port_): host{host_}, port{port_} {
-        listener_fd = initListener(NULL, port.c_str());
+        listener = make_unique<Listener>(host_, port_);
+        listener_fd = listener->fd();
         fds = (struct pollfd*)malloc(sizeof *fds * fd_size);
         addFd(listener_fd, POLLIN);
     }
@@ -44,14 +46,7 @@ struct Server {
     }
     
     void run() {
-        int status = listen(listener_fd, BACKLOG);
-        if (status != -1) {
-            cout << "start listening" << endl;
-        }
-        else {
-            cerr << "fail to listen\n";
-            return;
-        }
+        listener->startlistening();
         while (true) {
             int poll_count = poll(fds, fd_count, -1);
             for (int i = 0; i < fd_count; i++) {
@@ -70,9 +65,7 @@ struct Server {
     }
 
     void acceptConnection() {
-        struct sockaddr_storage remoteaddr;
-        socklen_t addrlen = sizeof remoteaddr;
-        int fd = accept(listener_fd, (struct sockaddr *) &remoteaddr, &addrlen);
+        int fd = listener->acceptConnection();
         if (fd != -1) {
             addFd(fd, POLLIN);
             string ack{"Connection established.\n"};
@@ -97,6 +90,7 @@ struct Server {
 private:
     string host;
     string port;
+    std::unique_ptr<Listener> listener;
     int listener_fd{-1};
     set<int> connections;
     int fd_size{5};
