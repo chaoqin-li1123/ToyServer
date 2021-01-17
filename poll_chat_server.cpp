@@ -19,7 +19,7 @@ using namespace std;
 
 
 struct Server {
-    Server() {
+    Server(const char* host_, const char* port_): host{host_}, port{port_} {
         listener_fd = initListener(NULL, port.c_str());
         fds = (struct pollfd*)malloc(sizeof *fds * fd_size);
         addFd(listener_fd, POLLIN);
@@ -95,7 +95,8 @@ struct Server {
         }
     }
 private:
-    string port{"2077"};
+    string host;
+    string port;
     int listener_fd{-1};
     set<int> connections;
     int fd_size{5};
@@ -105,7 +106,7 @@ private:
 
 
 
-int main() {
-    Server server;
+int main(int argc, char* argv[]) {
+    Server server(argv[1], argv[2]);
     server.run();
 }
