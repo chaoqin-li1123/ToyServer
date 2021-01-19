@@ -20,7 +20,7 @@ using namespace std;
 
 
 struct Server {
-    Server(const char* host_, const char* port_): host{host_}, port{port_} {
+    Server(const char* host_, const char* port_) {
         listener = make_unique<Listener>(host_, port_);
         listener_fd = listener->fd();
         fds = (struct pollfd*)malloc(sizeof *fds * fd_size);
@@ -31,6 +31,10 @@ struct Server {
         free(fds);
     }
     void addFd(int fd, int events) {
+        if (fd_count == fd_size) {
+            fd_size *= 2;
+            fds = (pollfd*)realloc(fds, fd_size * sizeof(*fds));
+        }
         fds[fd_count].fd = fd;
         fds[fd_count].events = events;
         fd_count++; 
@@ -46,7 +50,7 @@ struct Server {
     }
     
     void run() {
-        listener->startlistening();
+        listener->startListening();
         while (true) {
             int poll_count = poll(fds, fd_count, -1);
             for (int i = 0; i < fd_count; i++) {
@@ -81,15 +85,12 @@ struct Server {
             removeFd(fd);
         }
         else {
-            for (int connection: connections) {
-                if (connection == fd) continue;
-                send(connection, buf, nbytes, 0);
-            }
+            buf[nbytes] = 0;
+            cout << buf;
+            send(fd, buf, nbytes, 0);
         }
     }
 private:
-    string host;
-    string port;
     std::unique_ptr<Listener> listener;
     int listener_fd{-1};
     set<int> connections;
