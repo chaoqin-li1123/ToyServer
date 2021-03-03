@@ -19,7 +19,7 @@ struct Connection {
     Connection(string ip_, string port_): ip{ip_}, port{port_}, fd{-1}
     {   
         buildConnection();
-        if (fd != -1) cout << recvStr(fd) << endl;
+        if (fd != -1) run();
     }
 
     void buildConnection() {
@@ -39,6 +39,19 @@ struct Connection {
             }
             break;
         }
+    }
+
+    void run() {
+        char buf[MAXDATASIZE];
+        string line;
+        // hit ctrl D to exit the loop
+        while (getline(cin, line)) {
+            writen(fd, line.size(), line.c_str());
+            int nread = read(fd, buf, MAXDATASIZE);
+            buf[nread] = '\0';
+            cout << buf << endl;
+        }
+        close(fd);
     }
 
     ~Connection() {
@@ -62,6 +75,7 @@ private:
     Connection connection;
 };
 
-int main() {
-    Client client("localhost", "3490");
+int main(int argc, char* argv[]) {
+    Client client(argv[1], argv[2]);
+
 }

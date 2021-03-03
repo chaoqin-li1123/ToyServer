@@ -39,29 +39,37 @@ private:
 };
 
 struct Server {
-    Server() {
-        listener = make_unique<Listener>();
+    Server(const char* host_, const char* port_) {
+        listener = make_unique<Listener>(host_, port_);
     }
     void run() {
         listener->startListening();
         while (true) {
             int connection_fd = listener->acceptConnection();
             if (connection_fd != -1) {
-                cout << "accept connection\n";
-                connections.emplace_back(connection_fd);
+                int pid = fork();
+                // handle a new connection in a child process.
+                if (pid == 0) {
+                    echo(connection_fd);
+                }   
+                else {
+                    children.push_back(pid);
+                }             
             }
         }
     }
     ~Server() {
+        // for (int child: children) kill(child, SIGKILL);
     }
     
 private:
     unique_ptr<Listener> listener;
-    list<Connection> connections;
+    // list<Connection> connections;
+    list<int> children;
 };
 
 
-int main() {
-    Server server;
+int main(int argc, char* argv[]) {
+    Server server(argv[1], argv[2]);
     server.run();
 }

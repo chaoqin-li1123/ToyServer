@@ -1,3 +1,6 @@
+#ifndef UTILITY
+#define UTILITY
+
 #include <sys/socket.h>
 
 
@@ -47,5 +50,87 @@ std::string recvStr(int fd) {
     return std::string(buf);
 }
 
+int get_sock_port(struct sockaddr * sa) {
+    switch(sa->sa_family) {
+        case AF_INET:
+            return ((struct sockaddr_in*) sa)->sin_port;
+        case AF_INET6:
+            return ((struct sockaddr_in6*) sa)->sin6_port;
+        default:
+            return -1;
+    }
+}
 
+
+std::string get_sock_host(struct sockaddr * sa) {
+    char host[128];
+    host[0] = '\0';
+    switch(sa->sa_family) {
+        case AF_INET: {
+            if (inet_ntop(sa->sa_family, &(((struct sockaddr_in *)sa)->sin_addr), host, sizeof(host)) == NULL) {
+                return std::string();
+            }
+            break;
+        }
+        case AF_INET6: {
+            if (inet_ntop(sa->sa_family, &(((struct sockaddr_in6 *)sa)->sin6_addr), host, sizeof(host)) == NULL) {
+                return std::string();
+            }
+            break;
+        }
+        case AF_UNIX: {
+
+        }
+    }
+    return std::string(host);
+}
+
+
+int readn(int fd, size_t n, char* buf) {
+    size_t nleft = n;
+    while (nleft > 0) {
+        ssize_t nread = read(fd, buf, nleft);
+        if (nread == 0) break;
+        nleft -= nread;
+        buf += nread;
+    }
+    return n - nleft;
+}
+
+int writen(int fd, size_t n, const char* buf) {
+    size_t nleft = n;
+    while (nleft > 0) {
+        ssize_t nwrite = write(fd, buf, nleft);
+        if (nwrite == 0) break;
+        nleft -= nwrite;
+        buf += nwrite;
+    } 
+    return n - nleft;
+}
+
+void echo(int fd) {
+    char buf[MAXDATASIZE];
+    while (true) {
+        int nread = read(fd, buf, MAXDATASIZE);
+        if (nread < 0) {
+            if (errno == EINTR) continue;
+            break; 
+        }
+        writen(fd, nread, buf);
+    }
+}
+
+void echo_nonblock(int fd) {
+    char buf[MAXDATASIZE];
+    int nread;
+    while ((nread = read(fd, buf, MAXDATASIZE)) != 0) {
+        if (nread < 0) {
+            if (errno == EINTR) continue;
+            break; 
+        }
+        writen(fd, nread, buf);
+    }
+}
+
+#endif
 
