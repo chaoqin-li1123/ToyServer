@@ -59,7 +59,7 @@ struct Server {
             if (fd == listener_fd) {
                 int connection = listener->acceptConnection();
                 addFd(connection);
-                sendStr("connection established\n", connection);
+                // sendStr("connection established\n", connection);
             }
             else if (events[i].events & EPOLLIN) {
                 handleConnection(fd);
@@ -80,10 +80,16 @@ struct Server {
     }
 
     void handleConnection(int fd) {
-        clearBuf();
-        int nbytes = recv(fd, buf, sizeof buf, 0);
-        cout << buf;
-        send(fd, buf, nbytes, 0);
+        echo_nonblock(fd);
+    }
+
+    void handleConnectionByFork(int fd) {
+        int pid = fork();
+        // handle connection in the child process.
+        if (pid == 0) {
+            echo_nonblock(fd);
+            exit(0);
+        }
     }
 
     

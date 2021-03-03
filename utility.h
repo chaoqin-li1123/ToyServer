@@ -47,9 +47,92 @@ std::string recvStr(int fd) {
     return std::string(buf);
 }
 
+int get_sock_port(struct sockaddr * sa) {
+    switch(sa->sa_family) {
+        case AF_INET:
+            return ((struct sockaddr_in*) sa)->sin_port;
+        case AF_INET6:
+            return ((struct sockaddr_in6*) sa)->sin6_port;
+        default:
+            return -1;
+    }
+}
+
+
+std::string get_sock_host(struct sockaddr * sa) {
+    char host[128];
+    host[0] = '\0';
+    switch(sa->sa_family) {
+        case AF_INET: {
+            if (inet_ntop(sa->sa_family, &(((struct sockaddr_in *)sa)->sin_addr), host, sizeof(host)) == NULL) {
+                return std::string();
+            }
+            break;
+        }
+        case AF_INET6: {
+            if (inet_ntop(sa->sa_family, &(((struct sockaddr_in6 *)sa)->sin6_addr), host, sizeof(host)) == NULL) {
+                return std::string();
+            }
+            break;
+        }
+        case AF_UNIX: {
+
+        }
+    }
+    return std::string(host);
+}
+
+
+int readn(int fd, size_t n, char* buf) {
+    size_t nleft = n;
+    while (nleft > 0) {
+        ssize_t nread = read(fd, buf, nleft);
+        if (nread == 0) break;
+        nleft -= nread;
+        buf += nread;
+    }
+    return n - nleft;
+}
+
+int writen(int fd, size_t n, const char* buf) {
+    size_t nleft = n;
+    while (nleft > 0) {
+        ssize_t nwrite = write(fd, buf, nleft);
+        if (nwrite == 0) break;
+        nleft -= nwrite;
+        buf += nwrite;
+    } 
+    return n - nleft;
+}
+
+void echo(int fd) {
+    char buf[MAXDATASIZE];
+    int parent = getppid();
+    while (true) {
+        int nread = read(fd, buf, MAXDATASIZE);
+        if (nread < 0) {
+            if (errno == EINTR) continue;
+            break; 
+        }
+        writen(fd, nread, buf);
+    }
+}
+
+void echo_nonblock(int fd) {
+    char buf[MAXDATASIZE];
+    int nread;
+    while ((nread = read(fd, buf, MAXDATASIZE)) != 0) {
+        if (nread < 0) {
+            if (errno == EINTR) continue;
+            break; 
+        }
+        writen(fd, nread, buf);
+    }
+}
+
 struct Listener {
     Listener(std::string const& host, std::string const& port) {
-        struct addrinfo *server_info = getServerAddress(NULL, port.c_str());
+        struct addrinfo *server_info = getServerAddress(host.c_str(), port.c_str());
         struct addrinfo *node;
         int status;
         int yes = 1;
@@ -71,6 +154,7 @@ struct Listener {
                 throw NetworkException("server: bind");
                 continue;
             }
+            std::cout << "Listen on " << get_sock_host(node->ai_addr) << ":" << ntohs(get_sock_port(node->ai_addr)) << "\n";
             break;
         }
         freeaddrinfo(server_info);
@@ -85,23 +169,28 @@ struct Listener {
             throw NetworkException("Can't listen on the endpoint.\n");
         }
     }
+
     int acceptConnection() {
         struct sockaddr_storage their_addr;
-        socklen_t sin_size;
+        socklen_t sin_size = sizeof their_addr;
         int connection_fd = accept(listener_fd, (struct sockaddr *)&their_addr, &sin_size);
+        // If we are not interested in the identity of client.
+        // int connection_fd = accept(listener_fd, NULL, NULL);
         if (connection_fd == -1) {
             throw NetworkException("accept");
         }
+        std::cout << "Accept connection from " << get_sock_host((struct sockaddr *)&their_addr) << ":" << ntohs(get_sock_port((struct sockaddr *)&their_addr)) << "\n";
         return connection_fd;
     }
+
     ~Listener() {
         if (listener_fd != -1) close(listener_fd);
     }
+
     int fd() const {
         return listener_fd;
     }
 private:
     int listener_fd{-1};
-    std::string port{"3490"};
 };
 
