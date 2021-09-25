@@ -12,7 +12,9 @@ static struct addrinfo *getServerAddress(const char *host, const char *port) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
-  getaddrinfo(host, port, &hints, &server_info);
+  if (getaddrinfo(host, port, &hints, &server_info) != 0) {
+    throw NetworkException("getaddrinfo failure.");
+  }
   return server_info;
 }
 

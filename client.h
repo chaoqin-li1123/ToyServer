@@ -15,6 +15,8 @@
 
 #include "utility.h"
 
+using ::Utility::NetworkException;
+
 namespace Client {
 
 struct addrinfo* getClientAddress(const char* host, const char* port) {
@@ -22,7 +24,9 @@ struct addrinfo* getClientAddress(const char* host, const char* port) {
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
-  getaddrinfo(host, port, &hints, &server_info);
+  if (getaddrinfo(host, port, &hints, &server_info) != 0) {
+    throw NetworkException("getaddrinfo failure.");
+  }
   return server_info;
 }
 
@@ -40,12 +44,12 @@ struct ClientConnection {
     for (node = server_info; node != NULL; node = node->ai_next) {
       fd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
       if (fd == -1) {
-        std::cerr << "fail to create socket";
+        throw NetworkException("Create socket failure.");
         continue;
       }
       status = connect(fd, node->ai_addr, node->ai_addrlen);
       if (status == -1) {
-        std::cerr << "client fail to connect.\n";
+        std::cerr << "Client fail to connect.\n";
         continue;
       }
       break;
@@ -56,13 +60,12 @@ struct ClientConnection {
     Utility::setNonblocking(0);
     Utility::setNonblocking(fd);
     std::string line;
-    std::cout << "start client main loop\n";
+    std::cout << "Start client main loop\n";
     while (true) {
       std::string recv_msg = Utility::recvStr(fd);
       if (!recv_msg.empty()) {
         std::cout << recv_msg;
       }
-
       std::string input = Utility::drain(STDIN_FILENO);
       if (!input.empty()) {
         Utility::sendStr(input, fd);
