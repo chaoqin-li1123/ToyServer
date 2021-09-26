@@ -13,6 +13,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <sstream>
 #include <thread>
@@ -44,11 +45,14 @@ struct Server {
 
   void run() {
     while (true) {
-      int events_count = epoll_wait(epoll_fd, events, epoll_size, -1);
+      if (is_shutdown) return;
+      int events_count = epoll_wait(epoll_fd, events, epoll_size, 100);
       if (events_count == -1) throw NetworkException("epoll wait");
-      processEvents(events_count);
+      if (events_count > 0) processEvents(events_count);
     }
   }
+
+  void shutdown() { is_shutdown = true; }
 
  private:
   void handleConnection(int fd) {
@@ -85,12 +89,6 @@ struct Server {
       if (fd == listener_fd) {
         int connection = listener->acceptConnection();
         addFd(connection);
-        /*
-        std::stringstream ss;
-        ss << "connection established, thread id: ";
-        ss << std::this_thread::get_id();
-        sendStr(ss.str(), fd);
-        */
       } else if (events[i].events & EPOLLIN) {
         handleConnection(fd);
       }
@@ -102,6 +100,29 @@ struct Server {
   epoll_event events[epoll_size];
   int listener_fd{-1};
   std::shared_ptr<Listener::Listener> listener;
+  bool is_shutdown{false};
+};
+
+struct ServerManager {
+  void registerServer(Server& server) {
+    std::unique_lock<std::mutex> lck(register_mtx);
+    servers.push_back(&server);
+  }
+
+  void shutdown() {
+    std::unique_lock<std::mutex> lck(register_mtx);
+    for (Server* server : servers) server->shutdown();
+  }
+
+  static ServerManager& getServerManager() {
+    static ServerManager server_manager;
+    return server_manager;
+  }
+
+ private:
+  ServerManager() {}
+  std::vector<Server*> servers;
+  std::mutex register_mtx;
 };
 
 };  // namespace Server

@@ -34,30 +34,11 @@ struct ClientConnection {
   ClientConnection(std::string ip_, std::string port_)
       : ip{ip_}, port{port_}, fd{-1} {
     buildConnection();
-    if (fd != -1) run();
-  }
-
-  void buildConnection() {
-    struct addrinfo* server_info = getClientAddress(ip.c_str(), port.c_str());
-    struct addrinfo* node;
-    int status = -1;
-    for (node = server_info; node != NULL; node = node->ai_next) {
-      fd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
-      if (fd == -1) {
-        throw NetworkException("Create socket failure.");
-        continue;
-      }
-      status = connect(fd, node->ai_addr, node->ai_addrlen);
-      if (status == -1) {
-        std::cerr << "Client fail to connect.\n";
-        continue;
-      }
-      break;
-    }
+    run();
   }
 
   void run() {
-    Utility::setNonblocking(0);
+    Utility::setNonblocking(STDIN_FILENO);
     Utility::setNonblocking(fd);
     std::string line;
     std::cout << "Start client main loop\n";
@@ -79,6 +60,29 @@ struct ClientConnection {
   }
 
  private:
+  void buildConnection() {
+    struct addrinfo* server_info = getClientAddress(ip.c_str(), port.c_str());
+    struct addrinfo* node;
+    int status = -1;
+    for (node = server_info; node != NULL; node = node->ai_next) {
+      fd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
+      if (fd == -1) {
+        std::cerr << "Create socket failure.\n";
+        continue;
+      }
+      status = connect(fd, node->ai_addr, node->ai_addrlen);
+      if (status == -1) {
+        fd = -1;
+        std::cerr << "Client fail to connect.\n";
+        continue;
+      }
+      break;
+    }
+    if (fd == -1) {
+      throw NetworkException("Create socket failure.");
+    }
+  }
+
   std::string ip;
   std::string port;
   int fd;

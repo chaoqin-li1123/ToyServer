@@ -36,8 +36,7 @@ std::string recvStr(int fd) {
   buf[0] = '\0';
   int bytes = recv(fd, buf, MAXDATASIZE - 1, 0);
   if (bytes == -1) return std::string();
-  buf[bytes] = '\0';
-  return std::string(buf);
+  return std::string(buf, bytes);
 }
 
 int getSockPort(struct sockaddr* sa) {
