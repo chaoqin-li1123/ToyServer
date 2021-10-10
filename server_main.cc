@@ -1,19 +1,16 @@
 
+#include <csignal>
 #include <iostream>
 #include <mutex>
 #include <thread>
 #include <vector>
 
 #include "server.h"
-#include "signal.h"
 #include "utility.h"
-
-std::mutex servers_mtx;
-std::vector<Server::Server*> servers;
 
 static void signalHandler(int signal_number) {
   Server::ServerManager::getServerManager().shutdown();
-  std::cerr << "shutdown\n";
+  std::cerr << "server shutdown\n";
 }
 
 int main(int argc, char* argv[]) {

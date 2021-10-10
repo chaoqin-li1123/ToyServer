@@ -6,9 +6,12 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
+#include <cassert>
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 namespace Utility {
 
@@ -28,11 +31,22 @@ struct NetworkException : std::runtime_error {
 };
 
 void sendStr(std::string const& msg, int fd) {
-  send(fd, msg.c_str(), msg.size(), 0);
+  // There is no gurantee that the underlying buffer of std::string is
+  // continuous.
+  std::vector<char> buf{msg.begin(), msg.end()};
+  size_t bytes_to_send = buf.size();
+  size_t bytes_sent = 0;
+  const char* char_array = buf.data();
+  while (bytes_to_send > bytes_sent) {
+    int bytes_sent_now =
+        send(fd, char_array + bytes_sent, bytes_to_send - bytes_sent, 0);
+    if (bytes_sent_now == -1) break;
+    bytes_sent += bytes_sent_now;
+  }
 }
 
 std::string recvStr(int fd) {
-  static thread_local char buf[MAXDATASIZE];
+  static thread_local char buf[3];
   buf[0] = '\0';
   int bytes = recv(fd, buf, MAXDATASIZE - 1, 0);
   if (bytes == -1) return std::string();

@@ -19,8 +19,9 @@ static struct addrinfo *getServerAddress(const char *host, const char *port) {
 }
 
 struct Listener {
-  Listener(std::string const &host, std::string const &port) {
-    struct addrinfo *server_info = getServerAddress(NULL, port.c_str());
+  explicit Listener(const char *port_) : Listener(nullptr, port_) {}
+  Listener(const char *host_, const char *port_) {
+    struct addrinfo *server_info = getServerAddress(host_, port_);
     struct addrinfo *node;
     int status;
     int yes = 1;

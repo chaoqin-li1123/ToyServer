@@ -27,8 +27,9 @@ using ::Utility::NetworkException;
 namespace Server {
 
 struct Server {
+  explicit Server(const char* port_) : Server(nullptr, port_) {}
   Server(const char* host_, const char* port_) {
-    listener = std::make_shared<Listener::Listener>(host_, port_);
+    listener = std::make_unique<Listener::Listener>(host_, port_);
     listener_fd = listener->fd();
     listener->startListening();
     epoll_fd = epoll_create(5);
@@ -99,7 +100,7 @@ struct Server {
   static constexpr int epoll_size{10};
   epoll_event events[epoll_size];
   int listener_fd{-1};
-  std::shared_ptr<Listener::Listener> listener;
+  std::unique_ptr<Listener::Listener> listener;
   bool is_shutdown{false};
 };
 

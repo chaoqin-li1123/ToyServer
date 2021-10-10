@@ -31,18 +31,17 @@ struct addrinfo* getClientAddress(const char* host, const char* port) {
 }
 
 struct ClientConnection {
-  ClientConnection(std::string ip_, std::string port_)
-      : ip{ip_}, port{port_}, fd{-1} {
+  ClientConnection(std::string ip_, std::string port_) : ip{ip_}, port{port_} {
     buildConnection();
-    run();
+    Utility::setNonblocking(STDIN_FILENO);
+    Utility::setNonblocking(fd);
   }
 
   void run() {
-    Utility::setNonblocking(STDIN_FILENO);
-    Utility::setNonblocking(fd);
     std::string line;
     std::cout << "Start client main loop\n";
     while (true) {
+      if (is_shutdown == true) break;
       std::string recv_msg = Utility::recvStr(fd);
       if (!recv_msg.empty()) {
         std::cout << recv_msg;
@@ -52,8 +51,9 @@ struct ClientConnection {
         Utility::sendStr(input, fd);
       }
     }
-    close(fd);
   }
+
+  void shutdown() { is_shutdown = true; }
 
   ~ClientConnection() {
     if (fd != -1) close(fd);
@@ -85,14 +85,12 @@ struct ClientConnection {
 
   std::string ip;
   std::string port;
-  int fd;
+  int fd{-1};
+  bool is_shutdown{false};
 };
 
-struct Client {
-  Client(std::string ip_, std::string port_) : connection(ip_, port_) {}
-
- private:
-  ClientConnection connection;
+struct Client : public ClientConnection {
+  Client(std::string ip_, std::string port_) : ClientConnection(ip_, port_) {}
 };
 
 };  // namespace Client
