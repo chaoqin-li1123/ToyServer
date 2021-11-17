@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "listener.h"
-#include "utility.h"
 
 using ::Utility::NetworkException;
 
