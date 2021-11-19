@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <signal.h>
 #include <sys/socket.h>
 
 #include <cassert>
@@ -137,6 +138,20 @@ void echo(int fd) {
 }
 
 void echoNonBlock(int fd) { sendStr(recvStr(fd), fd); }
+
+struct SignalHandlerRegistery {
+  SignalHandlerRegistery(int signal_number, void (*handler)(int)) {
+    assert(signal(signal_number, handler) == 0);
+  }
+  SignalHandlerRegistery(int signal_number,
+                         void (*action)(int, siginfo_t*, void*)) {
+    struct sigaction sa = {0};
+    sa.sa_flags = signal_number;
+    sa.sa_sigaction = action;
+    sigemptyset(&sa.sa_mask);
+    assert(sigaction(signal_number, &sa, NULL) == 0);
+  }
+};
 
 };  // namespace Utility
 #endif

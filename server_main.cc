@@ -13,10 +13,11 @@ static void signalHandler(int signal_number) {
   std::cerr << "server shutdown\n";
 }
 
+static Utility::SignalHandlerRegistery sigterm_registry(SIGTERM, signalHandler);
+static Utility::SignalHandlerRegistery sigint_registry(SIGINT, signalHandler);
+
 int main(int argc, char* argv[]) {
   std::vector<std::thread> workers;
-  signal(SIGTERM, signalHandler);
-  signal(SIGINT, signalHandler);
   for (size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
     workers.emplace_back([&, i]() {
       try {
