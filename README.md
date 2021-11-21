@@ -17,6 +17,7 @@ make <br />
 <br />
 To run the server <br />
 server_main hostname port <br />
+<br />
 To run the client <br />
 client_main hostname port <br />
 
