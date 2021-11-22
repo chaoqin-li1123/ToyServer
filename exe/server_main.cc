@@ -5,8 +5,7 @@
 #include <thread>
 #include <vector>
 
-#include "server.h"
-#include "utility.h"
+#include "include/server.h"
 
 static void signalHandler(int signal_number) {
   Server::ServerManager::getServerManager().shutdown();

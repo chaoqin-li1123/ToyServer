@@ -3,8 +3,7 @@
 #include <csignal>
 #include <thread>
 
-#include "client.h"
-#include "utility.h"
+#include "include/client.h"
 
 static Client::Client* client{nullptr};
 
