@@ -1,6 +1,7 @@
 CC       = g++
-CFLAGS   = -g -Wall -I.
-CXXFLAGS = $(CFLAGS) -lstdc++ -lpthread
+LIBS 	 =  -lstdc++ -lpthread
+CFLAGS   = -g -Wall -I. -O3
+CXXFLAGS = $(CFLAGS) $(LIBS)
 
 all : server_main client_main
 .PHONY : all
@@ -16,4 +17,4 @@ server_main : server_main.cc server.h listener.h utility.h
 
 .PHONY : clean
 clean :
-	rm client_main server_main
+	-rm client_main server_main
