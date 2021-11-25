@@ -1,5 +1,5 @@
 CC       = g++
-LIBS 	 =  -lstdc++ -lpthread
+LIBS 	 = -lstdc++ -lpthread
 CFLAGS   = -g -Wall -I. -O3
 CXXFLAGS = $(CFLAGS) $(LIBS)
 
